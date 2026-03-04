@@ -1,0 +1,15 @@
+{
+  "projects": [
+    {
+      "name": "pro",
+      "spreadsheetId": "1wDWuDHf7gwLOpuLlZKbycR29iZzGzzDqlHBfz0vvhVU",
+      "category": "production",
+      "customSheets": "Production 1,Production 2",
+      "id": "1772526266974",
+      "color": "#8B5CF6"
+    }
+  ],
+  "selectedProdProjectIds": [],
+  "selectedHourlyProjectIds": [],
+  "selectedSheetIds": []
+}
