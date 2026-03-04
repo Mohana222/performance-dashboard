@@ -108,6 +108,15 @@ async function startServer() {
 
   io.on("connection", (socket) => {
     console.log("A user connected");
+    
+    socket.on("projects_updated", (projects) => {
+      socket.broadcast.emit("projects_updated", projects);
+    });
+
+    socket.on("state_updated", (state) => {
+      socket.broadcast.emit("state_updated", state);
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected");
     });

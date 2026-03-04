@@ -1,5 +1,6 @@
 
 import { RawRow, Project } from '../types';
+import { getSpreadsheets, saveSpreadsheet, deleteSpreadsheet } from './spreadsheetService';
 
 /**
  * Extracts the Google Spreadsheet ID from a full URL or returns the input if it looks like an ID.
@@ -140,34 +141,41 @@ function parseCSV(csv: string): RawRow[] {
 
 export const fetchGlobalProjects = async (): Promise<Project[]> => {
   try {
-    const response = await fetch('/api/projects');
-    if (!response.ok) throw new Error('Failed to fetch projects');
-    return await response.json();
+    const gasProjects = await getSpreadsheets();
+    return gasProjects.map(item => {
+      try {
+        const data = JSON.parse(item.sheet);
+        return {
+          id: item.url,
+          spreadsheetId: item.url,
+          name: data.name || 'Untitled Project',
+          category: data.category || 'production',
+          customSheets: data.customSheets || '',
+          color: '#8B5CF6' // Default color
+        };
+      } catch (e) {
+        // Fallback for non-JSON sheet names if any exist
+        return {
+          id: item.url,
+          spreadsheetId: item.url,
+          name: item.sheet,
+          category: 'production',
+          customSheets: '',
+          color: '#8B5CF6'
+        };
+      }
+    });
   } catch (error) {
-    console.error('Failed to fetch projects from backend:', error);
-    // Fallback to localStorage for migration or if backend fails
-    const saved = localStorage.getItem('dc_dashboard_v2_projects');
-    return saved ? JSON.parse(saved) : [];
+    console.error('Failed to fetch projects from GAS:', error);
+    return [];
   }
 };
 
 export const saveGlobalProjects = async (projects: Project[]): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(projects),
-    });
-    if (!response.ok) throw new Error('Failed to save projects');
-    
-    // Also update localStorage as a local cache/backup
-    localStorage.setItem('dc_dashboard_v2_projects', JSON.stringify(projects));
-    return true;
-  } catch (error) {
-    console.error('Failed to save projects to backend:', error);
-    localStorage.setItem('dc_dashboard_v2_projects', JSON.stringify(projects));
-    return false;
-  }
+  // This is a legacy function that saves the entire list.
+  // We'll just return true here as we'll handle individual saves in App.tsx
+  // to better match the GAS API structure.
+  return true;
 };
 
 export const fetchDashboardState = async (): Promise<any> => {

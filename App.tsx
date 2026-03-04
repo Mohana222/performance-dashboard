@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ViewType, RawRow, Project, Birthday } from './types';
 import { getSheetData, findKey, fetchGlobalProjects, saveGlobalProjects, fetchSheetList, fetchDashboardState, saveDashboardState } from './services/api';
+import { saveSpreadsheet, deleteSpreadsheet } from './services/spreadsheetService';
 import { MENU_ITEMS, COLORS, VALID_USERS, BIRTHDAYS } from './constants';
 import MultiSelect from './components/MultiSelect';
 import DataTable from './components/DataTable';
@@ -252,19 +253,45 @@ const App: React.FC = () => {
 
   const addProject = async (p: Omit<Project, 'id' | 'color'>) => {
     const cols = [COLORS.primary, COLORS.secondary, COLORS.accent];
-    const newP = { ...p, id: Date.now().toString(), color: cols[Math.floor(Math.random() * cols.length)] } as Project;
-    const up = [...projects, newP]; setProjects(up); await saveGlobalProjects(up);
+    const newP = { ...p, id: p.spreadsheetId, color: cols[Math.floor(Math.random() * cols.length)] } as Project;
+    
+    // Save to GAS
+    const sheetData = JSON.stringify({ name: p.name, category: p.category, customSheets: p.customSheets });
+    const success = await saveSpreadsheet(p.spreadsheetId, sheetData);
+    
+    if (success) {
+      const up = [...projects, newP];
+      setProjects(up);
+      // We still use socket to notify other clients if they are connected
+      socket.emit('projects_updated', up);
+    }
   };
 
   const updateProject = async (u: Project) => {
-    const list = projects.map(p => p.id === u.id ? u : p); setProjects(list); await saveGlobalProjects(list);
+    const sheetData = JSON.stringify({ name: u.name, category: u.category, customSheets: u.customSheets });
+    const success = await saveSpreadsheet(u.spreadsheetId, sheetData);
+    
+    if (success) {
+      const list = projects.map(p => p.id === u.id ? u : p);
+      setProjects(list);
+      socket.emit('projects_updated', list);
+    }
   };
 
   const deleteProject = async (id: string) => {
-    const list = projects.filter(p => p.id !== id); setProjects(list); await saveGlobalProjects(list);
-    setSelectedProdProjectIds(prev => prev.filter(p => p !== id));
-    setSelectedHourlyProjectIds(prev => prev.filter(p => p !== id));
-    setSelectedSheetIds(prev => prev.filter(s => !s.startsWith(`${id}|`)));
+    const project = projects.find(p => p.id === id);
+    if (!project) return;
+
+    const success = await deleteSpreadsheet(project.spreadsheetId);
+    
+    if (success) {
+      const list = projects.filter(p => p.id !== id);
+      setProjects(list);
+      socket.emit('projects_updated', list);
+      setSelectedProdProjectIds(prev => prev.filter(p => p !== id));
+      setSelectedHourlyProjectIds(prev => prev.filter(p => p !== id));
+      setSelectedSheetIds(prev => prev.filter(s => !s.startsWith(`${id}|`)));
+    }
   };
 
   const handleDiscover = async (id: string) => {

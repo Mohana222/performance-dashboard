@@ -3,6 +3,7 @@ import React from 'react';
 import { Birthday } from './types';
 
 export const APP_VERSION = "2.3.0";
+export const API_URL = "https://script.google.com/macros/s/AKfycbxUgG3ktfAwH2YNJzfFcfVxjit8RXwensruQvKNNbcHqwgxqQwCvOoq1sqbHMzw_7Jx/exec";
 
 // Hardcoded users for immediate login - Backend-less secure portal
 export const VALID_USERS: Record<string, string> = {
