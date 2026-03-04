@@ -18,6 +18,7 @@ const io = new Server(httpServer, {
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), "data");
 const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
+const STATE_FILE = path.join(DATA_DIR, "dashboard_state.json");
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -43,6 +44,25 @@ async function saveProjects(projects: any) {
   io.emit("projects_updated", projects);
 }
 
+async function readState() {
+  try {
+    const data = await fs.readFile(STATE_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return {
+      selectedProdProjectIds: [],
+      selectedHourlyProjectIds: [],
+      selectedSheetIds: []
+    };
+  }
+}
+
+async function saveState(state: any) {
+  await ensureDataDir();
+  await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2));
+  io.emit("state_updated", state);
+}
+
 async function startServer() {
   await ensureDataDir();
 
@@ -58,6 +78,17 @@ async function startServer() {
   app.post("/api/projects", async (req, res) => {
     const projects = req.body;
     await saveProjects(projects);
+    res.json({ success: true });
+  });
+
+  app.get("/api/state", async (_req, res) => {
+    const state = await readState();
+    res.json(state);
+  });
+
+  app.post("/api/state", async (req, res) => {
+    const state = req.body;
+    await saveState(state);
     res.json({ success: true });
   });
 

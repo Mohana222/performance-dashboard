@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ViewType, RawRow, Project, Birthday } from './types';
-import { getSheetData, findKey, fetchGlobalProjects, saveGlobalProjects, fetchSheetList } from './services/api';
+import { getSheetData, findKey, fetchGlobalProjects, saveGlobalProjects, fetchSheetList, fetchDashboardState, saveDashboardState } from './services/api';
 import { MENU_ITEMS, COLORS, VALID_USERS, BIRTHDAYS } from './constants';
 import MultiSelect from './components/MultiSelect';
 import DataTable from './components/DataTable';
@@ -110,23 +110,47 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const loadProjects = async () => {
+      const init = async () => {
         setIsLoading(true);
         const globalProjects = await fetchGlobalProjects();
         setProjects(globalProjects);
+        
+        const state = await fetchDashboardState();
+        if (state) {
+          setSelectedProdProjectIds(state.selectedProdProjectIds || []);
+          setSelectedHourlyProjectIds(state.selectedHourlyProjectIds || []);
+          setSelectedSheetIds(state.selectedSheetIds || []);
+        }
         setIsLoading(false);
       };
-      loadProjects();
+      init();
 
       socket.on('projects_updated', (updatedProjects: Project[]) => {
         setProjects(updatedProjects);
       });
 
+      socket.on('state_updated', (state: any) => {
+        setSelectedProdProjectIds(state.selectedProdProjectIds || []);
+        setSelectedHourlyProjectIds(state.selectedHourlyProjectIds || []);
+        setSelectedSheetIds(state.selectedSheetIds || []);
+      });
+
       return () => {
         socket.off('projects_updated');
+        socket.off('state_updated');
       };
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      saveDashboardState({
+        selectedProdProjectIds,
+        selectedHourlyProjectIds,
+        selectedSheetIds
+      });
+    }
+  }, [selectedProdProjectIds, selectedHourlyProjectIds, selectedSheetIds, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated && combinedSelectedProjectIds.length > 0) {

@@ -170,6 +170,32 @@ export const saveGlobalProjects = async (projects: Project[]): Promise<boolean> 
   }
 };
 
+export const fetchDashboardState = async (): Promise<any> => {
+  try {
+    const response = await fetch('/api/state');
+    if (!response.ok) throw new Error('Failed to fetch dashboard state');
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch dashboard state from backend:', error);
+    return null;
+  }
+};
+
+export const saveDashboardState = async (state: any): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+    });
+    if (!response.ok) throw new Error('Failed to save dashboard state');
+    return true;
+  } catch (error) {
+    console.error('Failed to save dashboard state to backend:', error);
+    return false;
+  }
+};
+
 const normalize = (s: string) => s?.toString().toLowerCase().replace(/[\s\-_]+/g, "").trim() || "";
 
 export const findKey = (keys: string[], targetName: string) => {
